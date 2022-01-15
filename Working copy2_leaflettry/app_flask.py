@@ -1,9 +1,9 @@
-from flask import Flask, render_template, redirect,request
+import json
+from flask import Flask, render_template, redirect, request
 from flask_pymongo import PyMongo
 
 import os
 import pymongo
-
 
 # Create an instance of Flask
 app_flask = Flask(__name__)
@@ -11,16 +11,17 @@ app_flask = Flask(__name__)
 
 
 class mongo_connection:
-  conn = None
+    conn = None
 
-  def connect(self):
-    myclient = pymongo.MongoClient("mongodb://localhost:27017/Crimes_db")
-    mydb = myclient["Crimes_db"]
-    self.conn = mydb["FullData_ExpDF"]
+    def connect(self):
+        myclient = pymongo.MongoClient("mongodb://localhost:27017/Crimes_db")
+        mydb = myclient["Crimes_db"]
+        self.conn = mydb["FullData_ExpDF"]
 
-  def query(self, sql):
-      cursor = self.conn.find(sql)  
-      return cursor 
+    def query(self, sql):
+        cursor = self.conn.find(sql)
+        return cursor
+
 
 db = mongo_connection()
 db.connect()
@@ -40,12 +41,34 @@ db.connect()
 def home():
     return render_template("index.html")
 
-# @app_flask.route("/map")
-# def map():
-#     return render_template("index_leaflet.html")
-# # Route that will trigger the getmapdata() function
 
+@app_flask.route("/map/", methods=["GET", "POST"])
+def map():
+    # Get Dataset
+    file_path = os.path.join(
+        os.path.split(os.path.abspath(__name__))[0],
+        "Working copy2_leaflettry",
+        "Export_DataFrame.json"
+    )
+    with open(file_path) as fp:
+        data_set = json.load(fp)
+
+    if request.method == "POST":
+        year = int(request.form.get('selDataset'))
+
+        new_data_set = []
+
+        # Filter Data
+        for i in data_set:
+            if i["Year"] == year:
+                new_data_set.append(i)
+        data_set = new_data_set
+        # print(new_data_set)
+
+    return render_template("map.html", data_set=data_set)
+
+# Route that will trigger the getmapdata() function
 
 
 if __name__ == "__main__":
-    app_flask.run(debug=True)
+    app_flask.run(debug=True, port=2000)
